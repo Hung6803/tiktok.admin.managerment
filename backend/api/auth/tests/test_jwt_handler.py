@@ -2,7 +2,7 @@
 Unit tests for JWT handler
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from api.auth.jwt_handler import JWTHandler
 from apps.accounts.models import User
@@ -65,8 +65,8 @@ class TestJWTHandler:
         payload = {
             'user_id': str(self.user.id),
             'type': 'access',
-            'exp': datetime.utcnow() - timedelta(hours=1),
-            'iat': datetime.utcnow() - timedelta(hours=2)
+            'exp': datetime.now(timezone.utc) - timedelta(hours=1),
+            'iat': datetime.now(timezone.utc) - timedelta(hours=2)
         }
         expired_token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 

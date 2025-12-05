@@ -1,10 +1,11 @@
 """
 JWT token generation and validation handler
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
 from django.conf import settings
+from django.core.cache import cache
 
 
 class JWTHandler:
@@ -21,7 +22,7 @@ class JWTHandler:
         Returns:
             dict: Contains access_token, refresh_token, token_type, expires_in
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Access token payload
         access_payload = {
@@ -75,11 +76,60 @@ class JWTHandler:
                 settings.SECRET_KEY,
                 algorithms=['HS256']
             )
+
+            # Check if token is blacklisted
+            if JWTHandler.is_token_blacklisted(token):
+                return None
+
             return payload
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:
             return None
+
+    @staticmethod
+    def blacklist_token(token: str) -> None:
+        """
+        Add token to blacklist
+
+        Args:
+            token: JWT token string to blacklist
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=['HS256'],
+                options={"verify_exp": False}  # Decode even if expired
+            )
+
+            # Calculate TTL: time until token expires
+            exp = payload.get('exp')
+            if exp:
+                exp_datetime = datetime.fromtimestamp(exp, tz=timezone.utc)
+                now = datetime.now(timezone.utc)
+                ttl = int((exp_datetime - now).total_seconds())
+
+                # Only cache if token hasn't expired yet
+                if ttl > 0:
+                    cache_key = f"blacklist:{token}"
+                    cache.set(cache_key, True, timeout=ttl)
+        except (jwt.InvalidTokenError, ValueError):
+            pass
+
+    @staticmethod
+    def is_token_blacklisted(token: str) -> bool:
+        """
+        Check if token is blacklisted
+
+        Args:
+            token: JWT token string
+
+        Returns:
+            bool: True if blacklisted, False otherwise
+        """
+        cache_key = f"blacklist:{token}"
+        return cache.get(cache_key, False)
 
     @staticmethod
     def get_user_from_token(token: str):

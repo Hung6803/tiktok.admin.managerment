@@ -7,7 +7,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.http import HttpRequest
 from apps.accounts.models import User
-from .schemas import RegisterIn, LoginIn, RefreshIn, TokenOut, UserOut, ErrorOut
+from .schemas import RegisterIn, LoginIn, RefreshIn, LogoutIn, TokenOut, UserOut, ErrorOut
 from .jwt_handler import JWTHandler
 from .middleware import JWTAuth
 
@@ -113,3 +113,29 @@ def get_current_user(request: HttpRequest):
         return 401, {"detail": "Authentication required"}
 
     return 200, request.auth
+
+
+@router.post("/logout", response={200: dict, 401: ErrorOut}, tags=["Authentication"], auth=jwt_auth)
+def logout(request: HttpRequest, data: LogoutIn):
+    """
+    Logout user and invalidate tokens
+
+    Blacklists the access token and optionally the refresh token
+    Requires Bearer token authentication
+    """
+    if not request.auth:
+        return 401, {"detail": "Authentication required"}
+
+    handler = JWTHandler()
+
+    # Get access token from Authorization header
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        access_token = auth_header.replace('Bearer ', '')
+        handler.blacklist_token(access_token)
+
+    # Blacklist refresh token if provided
+    if data.refresh_token:
+        handler.blacklist_token(data.refresh_token)
+
+    return 200, {"detail": "Successfully logged out"}

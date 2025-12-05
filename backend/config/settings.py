@@ -12,7 +12,15 @@ import sys
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
+# No default - SECRET_KEY must be provided in environment
+try:
+    SECRET_KEY = config('SECRET_KEY')
+except Exception:
+    sys.stderr.write(
+        "CRITICAL: SECRET_KEY environment variable is required.\n"
+        "Generate a secure key with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'\n"
+    )
+    sys.exit(1)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -136,6 +144,16 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 # Celery Beat (Periodic Tasks)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Cache Configuration (Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
+        'KEY_PREFIX': 'tiktok_manager',
+        'TIMEOUT': 300,  # 5 minutes default timeout
+    }
+}
 
 # Field-level Encryption Configuration
 CRYPTOGRAPHY_KEY = config('CRYPTOGRAPHY_KEY')

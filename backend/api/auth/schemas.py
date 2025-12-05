@@ -34,6 +34,11 @@ class RefreshIn(Schema):
     refresh_token: str
 
 
+class LogoutIn(Schema):
+    """Logout input schema"""
+    refresh_token: Optional[str] = None  # Optional for logging out all sessions
+
+
 class TokenOut(Schema):
     """JWT token output schema"""
     access_token: str
