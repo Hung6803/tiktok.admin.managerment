@@ -100,6 +100,7 @@ class TikTokAccount(BaseModel):
         indexes = [
             models.Index(fields=['user', 'status', 'is_deleted']),
             models.Index(fields=['token_expires_at']),
+            models.Index(fields=['user', 'status', '-created_at'], name='user_status_created_idx'),
         ]
         verbose_name = "TikTok Account"
         verbose_name_plural = "TikTok Accounts"

@@ -18,9 +18,11 @@ api = NinjaAPI(
 # Register API routers
 from apps.tiktok_accounts.api.tiktok_oauth_api import router as tiktok_oauth_router
 from api.auth.router import router as auth_router
+from api.accounts.router import router as accounts_router
 
 api.add_router("/tiktok/oauth/", tiktok_oauth_router, tags=["TikTok OAuth"])
 api.add_router("/auth/", auth_router, tags=["Authentication"])
+api.add_router("/accounts/", accounts_router, tags=["TikTok Accounts"])
 
 urlpatterns = [
     path('admin/', admin.site.urls),
