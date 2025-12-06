@@ -11,35 +11,34 @@ class PublishHistory(BaseModel):
     Provides audit trail and debugging information
     """
 
-    scheduled_post = models.ForeignKey(
+    post = models.ForeignKey(
         'content.ScheduledPost',
         on_delete=models.CASCADE,
-        related_name='publish_attempts',
+        related_name='publish_history',
         help_text="Post that was attempted to publish"
     )
-
-    attempt_number = models.IntegerField(
-        help_text="Attempt number (1, 2, 3, etc.)"
-    )
-    started_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When the publish attempt started"
-    )
-    completed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the publish attempt completed"
+    account = models.ForeignKey(
+        'tiktok_accounts.TikTokAccount',
+        on_delete=models.CASCADE,
+        related_name='publish_history',
+        help_text="Account used for publishing"
     )
 
-    success = models.BooleanField(
-        default=False,
-        help_text="Whether the publish was successful"
+    status = models.CharField(
+        max_length=20,
+        choices=[('success', 'Success'), ('failed', 'Failed')],
+        help_text="Status of publish attempt"
     )
-    error_code = models.CharField(
-        max_length=50,
+    tiktok_video_id = models.CharField(
+        max_length=100,
         null=True,
         blank=True,
-        help_text="Error code if failed"
+        help_text="TikTok's video ID if successful"
+    )
+    published_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When successfully published"
     )
     error_message = models.TextField(
         null=True,
@@ -47,36 +46,37 @@ class PublishHistory(BaseModel):
         help_text="Error message if failed"
     )
 
-    # API response
-    api_response = models.JSONField(
+    # Analytics metrics
+    views = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="Full API response from TikTok"
+        help_text="Total views for this video"
     )
-    http_status = models.IntegerField(
+    likes = models.BigIntegerField(
         null=True,
         blank=True,
-        help_text="HTTP status code from API"
+        help_text="Total likes for this video"
+    )
+    comments = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Total comments for this video"
+    )
+    shares = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text="Total shares for this video"
     )
 
     class Meta:
         db_table = 'publish_history'
-        ordering = ['-started_at']
+        ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['scheduled_post', 'attempt_number']),
-            models.Index(fields=['started_at']),
-            models.Index(fields=['success']),
+            models.Index(fields=['post', 'account']),
+            models.Index(fields=['status']),
         ]
         verbose_name = "Publish History"
         verbose_name_plural = "Publish Histories"
 
     def __str__(self):
-        status = "Success" if self.success else "Failed"
-        return f"Attempt {self.attempt_number} - {status}"
-
-    def get_duration(self):
-        """Get duration of publish attempt"""
-        if self.completed_at and self.started_at:
-            delta = self.completed_at - self.started_at
-            return delta.total_seconds()
-        return None
+        return f"{self.account.username} - {self.status}"

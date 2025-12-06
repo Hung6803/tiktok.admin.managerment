@@ -1,52 +1,61 @@
 # Codebase Summary: TikTok Multi-Account Manager
 
-## Phase 03 Updates: TikTok API Integration
+## Phase 05 Updates: Analytics Integration
 
-### New Services
-1. **TikTok OAuth Service**
-   - Location: `backend/apps/tiktok_accounts/services/tiktok_oauth_service.py`
-   - Responsibilities:
-     - Manage OAuth authentication flow
-     - Handle token exchange
-     - Implement token refresh
+### New Module: Analytics
+1. **Analytics Services**
+   - Location: `backend/api/analytics/services.py`
+   - Capabilities:
+     - Performance metrics tracking
+     - Time series data analysis
+     - Viral score calculation
+     - Intelligent caching strategies
 
-2. **TikTok Account Service**
-   - Location: `backend/apps/tiktok_accounts/services/tiktok_account_service.py`
-   - Responsibilities:
-     - Multi-account connection management
-     - Account metadata synchronization
-     - Token lifecycle management
+2. **Analytics Schemas**
+   - Location: `backend/api/analytics/schemas.py`
+   - Implementations:
+     - 17 Pydantic models
+     - Strict data validation
+     - Complex nested structures
 
-3. **TikTok Video Service**
-   - Location: `backend/apps/content/services/tiktok_video_service.py`
-   - Responsibilities:
-     - Video upload handling
-     - Publishing workflow
-     - Content scheduling integration
+3. **Analytics Router**
+   - Location: `backend/api/analytics/router.py`
+   - Endpoints:
+     - 9 RESTful API routes
+     - Comprehensive analytics retrieval
+     - Secure data access patterns
 
-### Utility Modules
-- `tiktok_config.py`: Centralized configuration
-- `tiktok_api_client.py`: API interaction abstraction
-- `rate_limiter.py`: Request throttling mechanism
+### Existing Services (Recap)
+- TikTok OAuth Service
+- TikTok Account Service
+- TikTok Video Service
 
-### API Endpoints
-- `/api/v1/tiktok/auth/url`: Generate OAuth URL
-- `/api/v1/tiktok/callback`: Handle OAuth callback
-- `/api/v1/tiktok/accounts`: Account management
+### New API Endpoints
+1. `/api/v1/analytics/accounts/{id}/metrics`
+2. `/api/v1/analytics/accounts/{id}/timeseries`
+3. `/api/v1/analytics/posts/{id}`
+4. `/api/v1/analytics/insights/best-times`
+5. `/api/v1/analytics/dashboard`
+6. `/api/v1/analytics/compare`
+7. `/api/v1/analytics/refresh/{id}`
+8. `/api/v1/analytics/export` (Stub)
 
-### Key Integration Points
-- OAuth 2.0 implementation
-- Secure token management
-- Rate limit handling
-- Error recovery strategies
+### Technical Implementations
+- Pydantic schema validation
+- Caching strategies (1h/30m/6h TTL)
+- SQL injection prevention
+- Authorization middleware
+- Performance optimization
 
-### Testing
-- 2 new test files added
-- Coverage for OAuth flow
-- API interaction scenarios
-- Error handling validation
+### Testing Overview
+- Unit Tests: 13 scenarios
+- Integration Tests: 10 endpoint validations
+- Focus: Service logic, API interactions
 
-## Technical Debt Notes
-- Ongoing: Improve OAuth token encryption
-- Ongoing: Enhance rate limit strategies
-- Future: Implement more comprehensive error logging
+### Technical Debt & Improvements
+- Scalability of analytics architecture
+- Performance benchmarking
+- Predictive analytics potential
+- Real-time data streaming
+
+Updated: 2025-12-06

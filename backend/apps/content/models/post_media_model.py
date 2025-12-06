@@ -16,10 +16,10 @@ class PostMedia(BaseModel):
         ('thumbnail', 'Thumbnail'),
     ]
 
-    scheduled_post = models.ForeignKey(
+    post = models.ForeignKey(
         'content.ScheduledPost',
         on_delete=models.CASCADE,
-        related_name='media_files',
+        related_name='media',
         help_text="Post this media belongs to"
     )
     media_type = models.CharField(
@@ -74,14 +74,14 @@ class PostMedia(BaseModel):
         db_table = 'post_media'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['scheduled_post', 'media_type']),
+            models.Index(fields=['post', 'media_type']),
         ]
         verbose_name = "Post Media"
         verbose_name_plural = "Post Media"
         app_label = 'content'
 
     def __str__(self):
-        return f"{self.media_type} for {self.scheduled_post.id}"
+        return f"{self.media_type} for {self.post.id}"
 
     def get_file_size_mb(self):
         """Get file size in megabytes"""

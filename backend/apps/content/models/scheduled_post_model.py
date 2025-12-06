@@ -17,11 +17,10 @@ class ScheduledPost(BaseModel):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('scheduled', 'Scheduled'),
-        ('queued', 'In Queue'),
-        ('processing', 'Processing'),
+        ('pending', 'Pending'),
+        ('publishing', 'Publishing'),
         ('published', 'Published'),
         ('failed', 'Failed'),
-        ('cancelled', 'Cancelled'),
     ]
 
     PRIVACY_CHOICES = [
@@ -30,11 +29,16 @@ class ScheduledPost(BaseModel):
         ('private', 'Private'),
     ]
 
-    tiktok_account = models.ForeignKey(
-        'tiktok_accounts.TikTokAccount',
+    user = models.ForeignKey(
+        'accounts.User',
         on_delete=models.CASCADE,
+        related_name='posts',
+        help_text="User who created the post"
+    )
+    accounts = models.ManyToManyField(
+        'tiktok_accounts.TikTokAccount',
         related_name='scheduled_posts',
-        help_text="TikTok account to publish to"
+        help_text="TikTok accounts to publish to"
     )
     status = models.CharField(
         max_length=20,
@@ -45,17 +49,29 @@ class ScheduledPost(BaseModel):
     )
 
     # Content details
-    caption = models.TextField(
+    title = models.CharField(
+        max_length=150,
+        help_text="Post title (max 150 chars)"
+    )
+    description = models.TextField(
         max_length=2200,
-        help_text="Post caption (max 2200 chars per TikTok limits)"
+        help_text="Post description (max 2200 chars per TikTok limits)"
     )
     hashtags = models.JSONField(
         default=list,
         help_text="List of hashtags"
     )
-    mentions = models.JSONField(
-        default=list,
-        help_text="List of mentioned users"
+    allow_comments = models.BooleanField(
+        default=True,
+        help_text="Allow comments on post"
+    )
+    allow_duet = models.BooleanField(
+        default=True,
+        help_text="Allow duet with this video"
+    )
+    allow_stitch = models.BooleanField(
+        default=True,
+        help_text="Allow stitch with this video"
     )
     privacy_level = models.CharField(
         max_length=20,
@@ -66,13 +82,10 @@ class ScheduledPost(BaseModel):
 
     # Scheduling
     scheduled_time = models.DateTimeField(
+        null=True,
+        blank=True,
         db_index=True,
         help_text="When to publish the post"
-    )
-    timezone = models.CharField(
-        max_length=50,
-        default='UTC',
-        help_text="Timezone for scheduled_time"
     )
 
     # Publishing metadata
@@ -81,18 +94,6 @@ class ScheduledPost(BaseModel):
         blank=True,
         help_text="When the post was actually published"
     )
-    tiktok_video_id = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True,
-        unique=True,
-        help_text="TikTok's video ID after publishing"
-    )
-    video_url = models.URLField(
-        null=True,
-        blank=True,
-        help_text="URL to the published TikTok video"
-    )
 
     # Error tracking
     error_message = models.TextField(
@@ -100,37 +101,16 @@ class ScheduledPost(BaseModel):
         blank=True,
         help_text="Error message if publishing failed"
     )
-    retry_count = models.IntegerField(
-        default=0,
-        help_text="Number of times publishing has been retried"
-    )
-    max_retries = models.IntegerField(
-        default=3,
-        help_text="Maximum number of retry attempts"
-    )
 
     class Meta:
         db_table = 'scheduled_posts'
-        ordering = ['-scheduled_time']
+        ordering = ['-created_at']
         indexes = [
+            models.Index(fields=['user', 'status']),
             models.Index(fields=['status', 'scheduled_time']),
-            models.Index(fields=['tiktok_account', 'status']),
         ]
         verbose_name = "Scheduled Post"
         verbose_name_plural = "Scheduled Posts"
 
     def __str__(self):
-        return f"{self.tiktok_account.username} - {self.scheduled_time} ({self.status})"
-
-    def can_retry(self):
-        """Check if post can be retried"""
-        return self.retry_count < self.max_retries and self.status == 'failed'
-
-    def is_ready_to_publish(self):
-        """Check if post is ready to be published"""
-        from django.utils import timezone
-        return (
-            self.status == 'scheduled' and
-            self.scheduled_time <= timezone.now() and
-            not self.is_deleted
-        )
+        return f"{self.title} - {self.status}"

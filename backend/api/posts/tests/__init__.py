@@ -1,0 +1,3 @@
+"""
+Posts API tests package
+"""
