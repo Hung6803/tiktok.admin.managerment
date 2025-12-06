@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useAccountMetrics, useAccountTimeSeries } from '@/hooks/use-analytics'
 import { StatsDashboard } from '@/components/analytics/stats-dashboard'
@@ -17,10 +17,12 @@ export default function AnalyticsPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>('')
   const [period, setPeriod] = useState<'day' | 'week' | 'month'>('week')
 
-  // Auto-select first account when loaded
-  if (!selectedAccountId && accounts && accounts.length > 0) {
-    setSelectedAccountId(accounts[0].id)
-  }
+  // Auto-select first account when loaded (moved to useEffect to fix state update during render)
+  React.useEffect(() => {
+    if (!selectedAccountId && accounts && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id)
+    }
+  }, [accounts, selectedAccountId])
 
   const { data: metrics, isLoading: metricsLoading } = useAccountMetrics(selectedAccountId)
   const { data: followersData, isLoading: followersLoading } = useAccountTimeSeries(
@@ -69,7 +71,7 @@ export default function AnalyticsPage() {
           {/* Period selector */}
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value as any)}
+            onChange={(e) => setPeriod(e.target.value as 'day' | 'week' | 'month')}
             className="px-4 py-2 border border-gray-300 rounded-md bg-white"
           >
             <option value="day">Daily</option>

@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { AxiosError } from 'axios'
 import Login from '@/app/(auth)/login/page'
 import { AuthProvider } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
@@ -65,14 +66,21 @@ describe('Login Page', () => {
   })
 
   it('handles login error', async () => {
-    // Mock API error
-    mockApiClient.post.mockRejectedValueOnce({
-      response: {
-        data: {
-          message: 'Invalid credentials'
-        }
+    // Mock API error with proper AxiosError structure
+    const axiosError = new AxiosError(
+      'Request failed with status code 401',
+      '401',
+      undefined,
+      undefined,
+      {
+        status: 401,
+        statusText: 'Unauthorized',
+        data: { message: 'Invalid credentials' },
+        headers: {},
+        config: {} as any
       }
-    })
+    )
+    mockApiClient.post.mockRejectedValueOnce(axiosError)
 
     render(
       <AuthProvider>

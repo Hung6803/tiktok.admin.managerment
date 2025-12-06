@@ -8,6 +8,7 @@ import { Trash2, Edit, ExternalLink, Clock, Video } from 'lucide-react'
 import { useDeletePost } from '@/hooks/use-posts'
 import { format } from 'date-fns'
 import { useState } from 'react'
+import DOMPurify from 'dompurify'
 
 interface PostCardProps {
   post: Post
@@ -58,7 +59,10 @@ export function PostCard({ post, onEdit }: PostCardProps) {
                 @{post.account?.username}
               </span>
             </div>
-            <CardTitle className="text-base line-clamp-2">{post.caption}</CardTitle>
+            <CardTitle
+              className="text-base line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.caption) }}
+            />
           </div>
         </div>
       </CardHeader>
@@ -89,7 +93,8 @@ export function PostCard({ post, onEdit }: PostCardProps) {
 
         {post.status === PostStatus.FAILED && post.last_error && (
           <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-            <strong>Error:</strong> {post.last_error}
+            <strong>Error:</strong>{' '}
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.last_error) }} />
           </div>
         )}
 

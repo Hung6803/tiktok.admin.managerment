@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { AxiosError } from 'axios'
 import { useForm } from 'react-hook-form'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useCreatePost, useUploadMedia } from '@/hooks/use-posts'
@@ -75,9 +76,15 @@ export function PostForm({ open, onClose, selectedDate }: PostFormProps) {
       reset()
       setUploadProgress(null)
       onClose()
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create post'
-      setError(errorMessage)
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const errorMessage = err.response?.data?.message || 'Failed to create post'
+        setError(errorMessage)
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Failed to create post')
+      }
       setUploadProgress(null)
     }
   }
@@ -122,7 +129,23 @@ export function PostForm({ open, onClose, selectedDate }: PostFormProps) {
                 id="media_file"
                 type="file"
                 accept="video/*"
-                {...register('media_file', { required: 'Please select a video file' })}
+                {...register('media_file', {
+                  required: 'Please select a video file',
+                  validate: {
+                    fileSize: (files) => {
+                      if (!files || files.length === 0) return true
+                      const file = files[0]
+                      const maxSize = 100 * 1024 * 1024 // 100MB
+                      return file.size <= maxSize || 'File size must be under 100MB'
+                    },
+                    fileType: (files) => {
+                      if (!files || files.length === 0) return true
+                      const file = files[0]
+                      const allowedTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo']
+                      return allowedTypes.includes(file.type) || 'Only MP4, MOV, WEBM, and AVI videos are allowed'
+                    }
+                  }
+                })}
               />
             </div>
             {selectedFile && (

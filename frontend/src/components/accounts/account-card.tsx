@@ -9,6 +9,7 @@ import { Trash2, RefreshCw, Users, Heart, Video, CheckCircle } from 'lucide-reac
 import { useDeleteAccount, useSyncAccount } from '@/hooks/use-accounts'
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import DOMPurify from 'dompurify'
 
 interface AccountCardProps {
   account: TikTokAccount
@@ -66,12 +67,14 @@ export function AccountCard({ account }: AccountCardProps) {
             </Avatar>
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
-                {account.display_name}
+                <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(account.display_name) }} />
                 {account.is_verified && (
                   <CheckCircle className="h-4 w-4 text-blue-600" />
                 )}
               </CardTitle>
-              <p className="text-sm text-gray-600">@{account.username}</p>
+              <p className="text-sm text-gray-600">
+                @<span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(account.username) }} />
+              </p>
             </div>
           </div>
           <Badge variant={account.is_active ? 'success' : 'secondary'}>

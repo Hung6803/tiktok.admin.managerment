@@ -11,6 +11,8 @@ export interface User {
 
 /**
  * TikTok account type
+ * SECURITY: access_token and refresh_token removed - never send to frontend
+ * Backend manages tokens securely in database
  */
 export interface TikTokAccount {
   id: string
@@ -25,8 +27,6 @@ export interface TikTokAccount {
   video_count: number
   is_verified: boolean
   is_active: boolean
-  access_token: string
-  refresh_token: string
   token_expires_at: string
   last_synced_at: string | null
   created_at: string
@@ -126,12 +126,12 @@ export interface AnalyticsTimeSeries {
 
 /**
  * Auth response type
+ * SECURITY: Tokens no longer returned in response body
+ * Backend sets them as httpOnly cookies instead
  */
 export interface AuthResponse {
-  access_token: string
-  refresh_token: string
-  token_type: string
-  expires_in: number
+  user: User
+  message?: string
 }
 
 /**

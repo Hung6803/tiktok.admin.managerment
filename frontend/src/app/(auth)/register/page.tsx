@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, FormEvent } from 'react'
+import { AxiosError } from 'axios'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,9 +41,15 @@ export default function RegisterPage() {
 
     try {
       await register(email, username, password)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Registration failed. Please try again.'
-      setError(errorMessage)
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.'
+        setError(errorMessage)
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('An unexpected error occurred')
+      }
     } finally {
       setLoading(false)
     }

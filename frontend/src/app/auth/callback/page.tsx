@@ -17,7 +17,7 @@ function CallbackHandler() {
   useEffect(() => {
     const handleCallback = async () => {
       const code = searchParams.get('code')
-      const state = searchParams.get('state')
+      const receivedState = searchParams.get('state')
       const errorParam = searchParams.get('error')
 
       if (errorParam) {
@@ -34,18 +34,36 @@ function CallbackHandler() {
         return
       }
 
+      // SECURITY: Validate OAuth state parameter to prevent CSRF attacks
+      const savedState = sessionStorage.getItem('oauth_state')
+      if (!receivedState || receivedState !== savedState) {
+        setStatus('error')
+        setError('Invalid OAuth state - possible CSRF attack')
+        sessionStorage.removeItem('oauth_state')
+        setTimeout(() => router.push('/accounts'), 3000)
+        return
+      }
+
+      // Clear state after successful validation
+      sessionStorage.removeItem('oauth_state')
+
       try {
         // Send authorization code to backend
         await apiClient.get('/tiktok/callback', {
-          params: { code, state }
+          params: { code, state: receivedState }
         })
 
         setStatus('success')
         setTimeout(() => router.push('/accounts'), 1500)
-      } catch (err: any) {
+      } catch (err) {
         setStatus('error')
-        const errorMessage = err.response?.data?.message || 'Failed to connect TikTok account'
-        setError(errorMessage)
+        if (err instanceof Error) {
+          const axiosError = err as any
+          const errorMessage = axiosError.response?.data?.message || 'Failed to connect TikTok account'
+          setError(errorMessage)
+        } else {
+          setError('Failed to connect TikTok account')
+        }
         setTimeout(() => router.push('/accounts'), 3000)
       }
     }
