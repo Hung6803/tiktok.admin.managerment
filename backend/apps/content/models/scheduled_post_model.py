@@ -102,6 +102,23 @@ class ScheduledPost(BaseModel):
         help_text="Error message if publishing failed"
     )
 
+    # Retry management
+    retry_count = models.IntegerField(
+        default=0,
+        help_text="Number of publish attempts made"
+    )
+    max_retries = models.IntegerField(
+        default=3,
+        help_text="Maximum number of retry attempts"
+    )
+
+    # Timezone
+    timezone = models.CharField(
+        max_length=50,
+        default='UTC',
+        help_text="Timezone for scheduled_time (e.g., 'America/New_York')"
+    )
+
     class Meta:
         db_table = 'scheduled_posts'
         ordering = ['-created_at']

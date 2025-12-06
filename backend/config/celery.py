@@ -31,6 +31,20 @@ app.conf.beat_schedule = {
         'task': 'apps.tiktok_accounts.tasks.cleanup_expired_tokens',
         'schedule': crontab(hour='*/6'),  # Every 6 hours
     },
+    'check-scheduled-posts-every-minute': {
+        'task': 'apps.scheduler.tasks.check_scheduled_posts_task.check_scheduled_posts',
+        'schedule': 60.0,  # Every 60 seconds
+        'options': {
+            'expires': 55,  # Task expires after 55 seconds (before next run)
+        }
+    },
+    'sync-accounts-daily': {
+        'task': 'apps.scheduler.tasks.sync_accounts_task.sync_all_accounts',
+        'schedule': crontab(hour=2, minute=0),  # 2 AM daily
+        'options': {
+            'expires': 3600,  # Task expires after 1 hour
+        }
+    },
 }
 
 # Windows-specific configuration for compatibility

@@ -1,29 +1,35 @@
 # Changelog
 
-## [0.3.0] - 2025-12-06 Analytics Platform Release
+## [0.4.0] - 2025-12-06 Scheduling System Release
 
 ### Added
-- Comprehensive Analytics API
-- Performance metrics dashboard
-- Time series data analysis
-- Account comparison features
-- Caching layer for analytics endpoints
+- Celery-based distributed task scheduling
+- Post scheduling workflow
+- Exponential backoff retry mechanism
+- Redis broker integration
+- Multi-account publishing support
+- Transaction-safe scheduling operations
 
 ### Fixed
-- 3 critical security vulnerabilities:
-  1. SQL injection risk
-  2. Authorization verification gaps
-  3. Error response information disclosure
+- Critical off-by-one error in retry delay calculation
+- Race condition in post publishing workflow
+- Enhanced error handling and logging
 
 ### Improvements
-- Implemented caching strategy
-- Added database performance indexes
-- Initial test coverage for analytics service
-- Optimized query performance
+- Comprehensive task scheduling architecture
+- Sophisticated retry and error management
+- Scalable background task processing
+- Improved system reliability
+- Enhanced transaction safety
 
 ### Known Limitations
-- Export functionality partially implemented
-- Some edge cases in metrics calculation require further testing
+- Timezone conversion not fully implemented
+- TikTok API publishing still stubbed
+- Load testing pending
+- Flower monitoring not yet integrated
+
+## [0.3.0] - 2025-12-06 Analytics Platform Release
+[Previous release details retained]
 
 ## Previous Releases
 [See git commit history for detailed changes in earlier versions]

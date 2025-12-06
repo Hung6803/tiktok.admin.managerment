@@ -52,10 +52,26 @@
 - Integration Tests: 10 endpoint validations
 - Focus: Service logic, API interactions
 
+### New Module: Scheduler
+1. **Scheduling Tasks**
+   - Location: `backend/apps/scheduler/tasks/`
+   - Key Components:
+     - `publish_post_task.py`: Post publishing workflow
+     - `check_scheduled_posts_task.py`: Periodic scheduling checks
+     - `sync_accounts_task.py`: Account synchronization
+
+2. **Scheduling Features**
+   - Celery distributed task scheduling
+   - Redis broker integration
+   - Exponential backoff retry mechanism
+   - Multi-account post publishing
+   - Transaction-safe operations
+
 ### Technical Debt & Improvements
-- Scalability of analytics architecture
-- Performance benchmarking
-- Predictive analytics potential
-- Real-time data streaming
+- Scalability of scheduler architecture
+- Performance benchmarking of async tasks
+- Timezone conversion robustness
+- Predictive analytics integration
+- Real-time task monitoring
 
 Updated: 2025-12-06

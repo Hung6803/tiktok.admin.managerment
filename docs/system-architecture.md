@@ -48,6 +48,24 @@
 - Predictive analytics implementation
 - Real-time analytics streaming potential
 
+## Scheduling System Architecture (Phase 05)
+### Celery Task Scheduling Components
+- **Broker**: Redis
+- **Beat Schedule**:
+  1. `check_scheduled_posts`: Runs every 60 seconds
+  2. `sync_all_accounts`: Daily at 2 AM
+- **Task Modules**:
+  1. `publish_post_task.py`: Core publishing logic
+  2. `check_scheduled_posts_task.py`: Post scheduling validation
+  3. `sync_accounts_task.py`: Daily account synchronization
+
+### Scheduling Key Features
+- Multi-account support
+- Exponential backoff retry logic
+- Race condition prevention
+- Comprehensive error logging
+- Transaction safety with atomic blocks
+
 ## Existing Architectural Elements
 - OAuth 2.0 Compliance
 - Distributed Task Queue (Celery)
