@@ -14,6 +14,8 @@ class PostMedia(BaseModel):
         ('video', 'Video'),
         ('image', 'Image'),
         ('thumbnail', 'Thumbnail'),
+        ('slideshow_source', 'Slideshow Source Image'),
+        ('slideshow_video', 'Slideshow Generated Video'),
     ]
 
     post = models.ForeignKey(
@@ -70,11 +72,37 @@ class PostMedia(BaseModel):
         help_text="Path to generated thumbnail"
     )
 
+    # Slideshow specific fields
+    carousel_order = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Order position in slideshow (0-indexed)"
+    )
+    image_duration_ms = models.IntegerField(
+        null=True,
+        blank=True,
+        default=4000,
+        help_text="Display duration per image in milliseconds"
+    )
+    is_slideshow_source = models.BooleanField(
+        default=False,
+        help_text="Whether this is a source image for slideshow"
+    )
+    slideshow_video = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='source_images',
+        help_text="Generated slideshow video (for source images)"
+    )
+
     class Meta:
         db_table = 'post_media'
-        ordering = ['-created_at']
+        ordering = ['carousel_order', '-created_at']
         indexes = [
             models.Index(fields=['post', 'media_type']),
+            models.Index(fields=['post', 'is_slideshow_source']),
         ]
         verbose_name = "Post Media"
         verbose_name_plural = "Post Media"

@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.6.0] - 2025-12-10 Photo Slideshow Feature Release
+
+### Added
+- **Photo Slideshow API Endpoints** (Phase 02)
+  - `POST /api/v1/posts/slideshow` - Create slideshow from 2-10 images
+  - `GET /api/v1/posts/slideshow/{post_id}/status` - Track conversion progress
+  - `POST /api/v1/posts/slideshow/{post_id}/retry` - Retry failed conversions
+- **Slideshow Schemas**
+  - SlideshowImageIn: Image input validation
+  - SlideshowCreateIn: Complete slideshow creation schema
+  - SlideshowStatusOut: Conversion status response
+  - SlideshowConversionStatus enum: pending, converting, ready, failed
+- **Service Layer**
+  - create_slideshow_post() method with atomic transactions
+  - _queue_slideshow_conversion() for async Celery task queueing
+  - File security: path validation, size limits (20MB), MIME type validation
+- **Implementation Features**
+  - Asynchronous FFmpeg conversion via Celery
+  - Per-image duration customization (1-10 seconds)
+  - Automatic status tracking (pending→converting→ready)
+  - Retry mechanism with cleanup of failed conversions
+  - Query optimization with prefetch_related
+
+### Technical Details
+- Minimum 2, maximum 10 images per slideshow
+- Images stored as PostMedia with is_slideshow_source flag
+- Generated video stored as slideshow_video media type
+- Seamless integration with existing publishing workflow
+
 ## [0.5.1] - 2025-12-06 Security Remediation Release
 
 ### Security Fixes (CRITICAL)

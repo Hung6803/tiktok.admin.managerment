@@ -18,11 +18,12 @@ class TikTokConfig:
     OAUTH_TOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/'
     API_BASE_URL = 'https://open.tiktokapis.com/v2/'
 
-    # API scopes
+    # API scopes (must match TikTok Developer Portal configuration)
     SCOPES = [
-        'user.info.basic',      # Basic user information
-        'video.upload',          # Video upload permission
-        'video.publish',         # Video publishing permission
+        'user.info.basic',       # Basic user information (open_id, avatar, display_name)
+        'user.info.profile',     # Profile info (web_link, bio, is_verified)
+        'user.info.stats',       # Stats (likes, followers, following, video count)
+        'video.upload',          # Video upload permission (as draft)
         'video.list',            # List user videos
     ]
 
@@ -46,6 +47,15 @@ class TikTokConfig:
     RECOMMENDED_VIDEO_CODEC = 'H.264'
     RECOMMENDED_RESOLUTION = (1080, 1920)  # 9:16 aspect ratio
     MAX_CAPTION_LENGTH = 2200
+
+    # Slideshow specifications
+    SLIDESHOW_IMAGE_DURATION_MS = 4000  # 4 seconds per image
+    SLIDESHOW_MIN_IMAGES = 2  # Minimum images required
+    SLIDESHOW_MAX_IMAGES = 10  # Maximum images allowed
+    SLIDESHOW_OUTPUT_FORMAT = 'mp4'  # Output video format
+    SLIDESHOW_OUTPUT_CODEC = 'libx264'  # H.264 codec
+    SLIDESHOW_OUTPUT_FPS = 30  # Output frame rate
+    SLIDESHOW_MAX_DURATION_SEC = 60  # Max 60 seconds total
 
     @classmethod
     def get_scope_string(cls) -> str:

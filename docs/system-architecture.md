@@ -35,6 +35,39 @@
 7. `/api/v1/analytics/refresh/{id}`
 8. `/api/v1/analytics/export` (Stub)
 
+## Photo Slideshow Feature (Phase 02)
+
+### Overview
+Photo Slideshow converts multiple images to TikTok-compatible videos with automatic FFmpeg conversion and retry mechanisms.
+
+### API Endpoints
+1. **POST `/api/v1/posts/slideshow`** - Create slideshow post from 2-10 images
+   - Converts images to video asynchronously via Celery
+   - Returns post with 'pending' status during conversion
+   - Image duration: 1-10 seconds per image (customizable)
+
+2. **GET `/api/v1/posts/slideshow/{post_id}/status`** - Check conversion progress
+   - Status values: pending, converting, ready, failed
+   - Progress: 0-100 percentage
+   - Image count and estimated video duration
+
+3. **POST `/api/v1/posts/slideshow/{post_id}/retry`** - Retry failed conversion
+   - Requires failed conversion status
+   - Cleans up previous failed video, requeues conversion
+
+### Data Models
+- **SlideshowImageIn**: Image upload schema (file_path, duration_ms, order)
+- **SlideshowCreateIn**: Slideshow creation schema (extends PostCreateIn)
+- **SlideshowStatusOut**: Conversion status schema
+- **SlideshowConversionStatus**: Enum (pending, converting, ready, failed)
+
+### Implementation Details
+- Images stored as PostMedia with `is_slideshow_source=True`
+- Generated video stored as `media_type='slideshow_video'`
+- FFmpeg conversion queued asynchronously via Celery task
+- File security: Path validation, size limits (20MB), MIME type validation
+- Optimization: Single query with prefetch_related to avoid N+1
+
 ### Performance & Security
 - SQL Injection Prevention
 - N+1 Query Optimization
@@ -120,4 +153,4 @@
 - Circuit Breaker Implementation
 - Comprehensive Frontend Architecture
 
-Updated: 2025-12-06
+Updated: 2025-12-10
