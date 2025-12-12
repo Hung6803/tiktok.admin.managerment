@@ -160,3 +160,27 @@ export interface PaginatedResponse<T> {
   data: T[]
   meta: PaginationMeta
 }
+
+/**
+ * User profile update request
+ */
+export interface UserProfileUpdate {
+  username?: string
+  timezone?: string
+}
+
+/**
+ * Password change request
+ */
+export interface PasswordChangeRequest {
+  current_password: string
+  new_password: string
+}
+
+/**
+ * Settings update response
+ */
+export interface SettingsUpdateResponse {
+  message: string
+  user?: User
+}

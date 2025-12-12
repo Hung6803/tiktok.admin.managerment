@@ -63,3 +63,56 @@ class UserOut(Schema):
 class ErrorOut(Schema):
     """Standard error response schema"""
     detail: str
+
+
+class ProfileUpdateIn(Schema):
+    """Profile update input schema"""
+    username: Optional[str] = None
+    timezone: Optional[str] = None
+
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v):
+        """Validate username format"""
+        if v is not None:
+            if len(v) < 2:
+                raise ValueError('Username must be at least 2 characters')
+            if len(v) > 50:
+                raise ValueError('Username must be at most 50 characters')
+        return v
+
+    @field_validator('timezone')
+    @classmethod
+    def validate_timezone(cls, v):
+        """Validate timezone is a known timezone"""
+        if v is not None:
+            valid_timezones = {
+                'UTC', 'America/New_York', 'America/Chicago', 'America/Denver',
+                'America/Los_Angeles', 'America/Sao_Paulo', 'Europe/London',
+                'Europe/Paris', 'Europe/Moscow', 'Asia/Dubai', 'Asia/Kolkata',
+                'Asia/Bangkok', 'Asia/Ho_Chi_Minh', 'Asia/Singapore',
+                'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Seoul', 'Australia/Sydney',
+                'Pacific/Auckland'
+            }
+            if v not in valid_timezones:
+                raise ValueError('Invalid timezone')
+        return v
+
+
+class PasswordChangeIn(Schema):
+    """Password change input schema"""
+    current_password: str
+    new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v):
+        """Validate new password strength"""
+        if len(v) < 8:
+            raise ValueError('New password must be at least 8 characters')
+        return v
+
+
+class MessageOut(Schema):
+    """Simple message response schema"""
+    message: str

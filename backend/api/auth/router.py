@@ -7,7 +7,10 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.cache import cache
 from django.http import HttpRequest
 from apps.accounts.models import User
-from .schemas import RegisterIn, LoginIn, RefreshIn, LogoutIn, TokenOut, UserOut, ErrorOut
+from .schemas import (
+    RegisterIn, LoginIn, RefreshIn, LogoutIn, TokenOut, UserOut, ErrorOut,
+    ProfileUpdateIn, PasswordChangeIn, MessageOut
+)
 from .jwt_handler import JWTHandler
 from .middleware import JWTAuth
 
@@ -139,3 +142,45 @@ def logout(request: HttpRequest, data: LogoutIn):
         handler.blacklist_token(data.refresh_token)
 
     return 200, {"detail": "Successfully logged out"}
+
+
+@router.put("/profile", response={200: UserOut, 400: ErrorOut, 401: ErrorOut}, auth=jwt_auth, tags=["Authentication"])
+def update_profile(request: HttpRequest, data: ProfileUpdateIn):
+    """
+    Update current user profile
+
+    Allows updating username and timezone.
+    """
+    if not request.auth:
+        return 401, {"detail": "Authentication required"}
+
+    user = request.auth
+
+    if data.username is not None:
+        user.username = data.username
+    if data.timezone is not None:
+        user.timezone = data.timezone
+
+    user.save()
+    return 200, user
+
+
+@router.post("/password", response={200: MessageOut, 400: ErrorOut, 401: ErrorOut}, auth=jwt_auth, tags=["Authentication"])
+def change_password(request: HttpRequest, data: PasswordChangeIn):
+    """
+    Change current user password
+
+    Requires current password verification.
+    """
+    if not request.auth:
+        return 401, {"detail": "Authentication required"}
+
+    user = request.auth
+
+    if not check_password(data.current_password, user.password):
+        return 400, {"detail": "Current password is incorrect"}
+
+    user.password = make_password(data.new_password)
+    user.save()
+
+    return 200, {"message": "Password changed successfully"}
