@@ -40,6 +40,7 @@ class TikTokAccount(BaseModel):
         help_text="TikTok display name"
     )
     avatar_url = models.URLField(
+        max_length=500,  # TikTok avatar URLs can be very long
         null=True,
         blank=True,
         help_text="Profile picture URL"
