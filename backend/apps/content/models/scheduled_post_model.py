@@ -23,10 +23,16 @@ class ScheduledPost(BaseModel):
         ('failed', 'Failed'),
     ]
 
+    POST_TYPE_CHOICES = [
+        ('video', 'Video'),
+        ('slideshow', 'Slideshow'),
+        ('photo', 'Photo'),
+    ]
+
     PRIVACY_CHOICES = [
-        ('public', 'Public'),
-        ('friends', 'Friends'),
-        ('private', 'Private'),
+        ('public_to_everyone', 'Public'),
+        ('mutual_follow_friends', 'Friends'),
+        ('self_only', 'Private'),
     ]
 
     user = models.ForeignKey(
@@ -46,6 +52,12 @@ class ScheduledPost(BaseModel):
         default='draft',
         db_index=True,
         help_text="Current status of the post"
+    )
+    post_type = models.CharField(
+        max_length=20,
+        choices=POST_TYPE_CHOICES,
+        default='video',
+        help_text="Type of post content"
     )
 
     # Content details
@@ -74,10 +86,10 @@ class ScheduledPost(BaseModel):
         help_text="Allow stitch with this video"
     )
     privacy_level = models.CharField(
-        max_length=20,
+        max_length=25,
         choices=PRIVACY_CHOICES,
-        default='public',
-        help_text="Post privacy setting"
+        default='public_to_everyone',
+        help_text="Post privacy setting (TikTok API values)"
     )
 
     # Scheduling

@@ -1,27 +1,37 @@
 'use client'
 
-import { Post, PostStatus } from '@/types'
+import { Post, PostStatus, PostType } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Trash2, Edit, ExternalLink, Clock, Video } from 'lucide-react'
+import { Trash2, Edit, Clock, Video, Users, ImageIcon, Images } from 'lucide-react'
 import { useDeletePost } from '@/hooks/use-posts'
 import { format } from 'date-fns'
 import { useState } from 'react'
 import DOMPurify from 'dompurify'
+
+// Media files are served at /media/, not /api/v1/media/
+// Extract base server URL without /api/v1 path
+const getMediaBaseUrl = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+  // Remove /api/v1 suffix if present to get root server URL
+  return apiUrl.replace(/\/api\/v1\/?$/, '')
+}
+const MEDIA_BASE_URL = getMediaBaseUrl()
 
 interface PostCardProps {
   post: Post
   onEdit?: (post: Post) => void
 }
 
-const statusConfig = {
-  [PostStatus.DRAFT]: { variant: 'secondary' as const, label: 'Draft' },
-  [PostStatus.SCHEDULED]: { variant: 'default' as const, label: 'Scheduled' },
-  [PostStatus.PUBLISHING]: { variant: 'warning' as const, label: 'Publishing' },
-  [PostStatus.PUBLISHED]: { variant: 'success' as const, label: 'Published' },
-  [PostStatus.FAILED]: { variant: 'destructive' as const, label: 'Failed' },
-  [PostStatus.CANCELLED]: { variant: 'outline' as const, label: 'Cancelled' },
+const statusConfig: Record<string, { variant: 'secondary' | 'default' | 'warning' | 'success' | 'destructive' | 'outline'; label: string }> = {
+  [PostStatus.DRAFT]: { variant: 'secondary', label: 'Draft' },
+  [PostStatus.SCHEDULED]: { variant: 'default', label: 'Scheduled' },
+  [PostStatus.PENDING]: { variant: 'secondary', label: 'Pending' },
+  [PostStatus.PUBLISHING]: { variant: 'warning', label: 'Publishing' },
+  [PostStatus.PUBLISHED]: { variant: 'success', label: 'Published' },
+  [PostStatus.FAILED]: { variant: 'destructive', label: 'Failed' },
+  [PostStatus.CANCELLED]: { variant: 'outline', label: 'Cancelled' },
 }
 
 /**
@@ -46,7 +56,7 @@ export function PostCard({ post, onEdit }: PostCardProps) {
     }
   }
 
-  const statusInfo = statusConfig[post.status]
+  const statusInfo = statusConfig[post.status] || statusConfig[PostStatus.DRAFT]
 
   return (
     <Card>
@@ -55,59 +65,96 @@ export function PostCard({ post, onEdit }: PostCardProps) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-              <span className="text-xs text-gray-500">
-                @{post.account?.username}
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {post.account_count} account{post.account_count !== 1 ? 's' : ''}
+              </span>
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <ImageIcon className="h-3 w-3" />
+                {post.media_count} media
               </span>
             </div>
             <CardTitle
               className="text-base line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.caption) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.title) }}
             />
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        {post.media && (
-          <div className="relative aspect-video bg-gray-100 rounded-md overflow-hidden mb-4">
-            {post.media.thumbnail_url ? (
+        <div className="relative aspect-video bg-gray-100 rounded-md overflow-hidden mb-4">
+          {post.thumbnail_url ? (
+            <>
               <img
-                src={post.media.thumbnail_url}
-                alt="Post thumbnail"
+                src={`${MEDIA_BASE_URL}${post.thumbnail_url}`}
+                alt={post.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Hide image on error, show fallback icon
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                }}
               />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <Video className="h-12 w-12 text-gray-400" />
+              <div className="hidden flex items-center justify-center h-full absolute inset-0">
+                {post.post_type === PostType.PHOTO ? (
+                  <Images className="h-12 w-12 text-gray-400" />
+                ) : (
+                  <Video className="h-12 w-12 text-gray-400" />
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Clock className="h-4 w-4" />
-          <span>
-            {format(new Date(post.scheduled_time), 'MMM d, yyyy \'at\' h:mm a')}
-          </span>
+              {/* Post type indicator badge */}
+              <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                {post.post_type === PostType.PHOTO ? (
+                  <>
+                    <Images className="h-3 w-3" />
+                    {post.media_count} photo{post.media_count !== 1 ? 's' : ''}
+                  </>
+                ) : post.post_type === PostType.SLIDESHOW ? (
+                  <>
+                    <Images className="h-3 w-3" />
+                    Slideshow
+                  </>
+                ) : (
+                  <>
+                    <Video className="h-3 w-3" />
+                    Video
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              {post.post_type === PostType.PHOTO ? (
+                <Images className="h-12 w-12 text-gray-400" />
+              ) : (
+                <Video className="h-12 w-12 text-gray-400" />
+              )}
+            </div>
+          )}
         </div>
 
-        {post.status === PostStatus.FAILED && post.last_error && (
-          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-            <strong>Error:</strong>{' '}
-            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.last_error) }} />
+        {post.description && (
+          <p
+            className="text-sm text-gray-600 line-clamp-3 mb-4"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.description) }}
+          />
+        )}
+
+        {post.scheduled_time && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Clock className="h-4 w-4" />
+            <span>
+              {format(new Date(post.scheduled_time), 'MMM d, yyyy \'at\' h:mm a')}
+            </span>
           </div>
         )}
 
-        {post.tiktok_share_url && (
-          <a
-            href={post.tiktok_share_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:underline"
-          >
-            <ExternalLink className="h-4 w-4" />
-            View on TikTok
-          </a>
+        {post.status === PostStatus.FAILED && post.error_message && (
+          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+            <strong>Error:</strong>{' '}
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.error_message) }} />
+          </div>
         )}
       </CardContent>
 

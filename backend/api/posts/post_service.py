@@ -30,6 +30,7 @@ class PostService:
         # Extract data
         account_ids = data.pop('account_ids')
         media_items = data.pop('media', [])
+        media_ids = data.pop('media_ids', [])  # IDs of existing media from upload
         hashtags = data.pop('hashtags', [])
         is_draft = data.pop('is_draft', False)
 
@@ -57,7 +58,14 @@ class PostService:
         )
         post.accounts.set(accounts)
 
-        # Add media
+        # Link existing media (from upload)
+        if media_ids:
+            PostMedia.objects.filter(
+                id__in=media_ids,
+                post__isnull=True  # Only link orphan media
+            ).update(post=post)
+
+        # Create new media
         for media_data in media_items:
             PostMedia.objects.create(
                 post=post,
@@ -79,9 +87,9 @@ class PostService:
             post: ScheduledPost to schedule
         """
         try:
-            from apps.scheduler.tasks import publish_post_task
+            from apps.scheduler.tasks.publish_post_task import publish_post
             eta = post.scheduled_time
-            publish_post_task.apply_async(
+            publish_post.apply_async(
                 args=[str(post.id)],
                 eta=eta
             )
@@ -328,3 +336,109 @@ class PostService:
             logger.info(f"Queued slideshow conversion for post {post.id}")
         except ImportError:
             logger.warning("convert_slideshow task not available, skipping conversion queue")
+
+    @transaction.atomic
+    def create_photo_post(self, user, data: dict) -> ScheduledPost:
+        """
+        Create photo post from 1-35 images
+
+        Args:
+            user: User creating the post
+            data: Photo post data dictionary with images
+
+        Returns:
+            Created ScheduledPost instance
+        """
+        # Extract data
+        account_ids = data.pop('account_ids')
+        images = data.pop('images')
+        cover_index = data.pop('cover_index', 0)
+        hashtags = data.pop('hashtags', [])
+        is_draft = data.pop('is_draft', False)
+        disable_comment = data.pop('disable_comment', False)
+
+        # Determine status
+        if is_draft:
+            status = 'draft'
+        elif data.get('scheduled_time'):
+            status = 'scheduled'
+        else:
+            status = 'pending'
+
+        # Create post with photo type
+        post = ScheduledPost.objects.create(
+            user=user,
+            status=status,
+            post_type='photo',
+            hashtags=hashtags,
+            allow_comments=not disable_comment,
+            **data
+        )
+
+        # Add accounts
+        accounts = TikTokAccount.objects.filter(
+            id__in=account_ids,
+            user=user,
+            is_deleted=False
+        )
+        post.accounts.set(accounts)
+
+        # Add images as PostMedia
+        for idx, img_data in enumerate(images):
+            import os
+            from django.conf import settings
+            import imghdr
+
+            file_path = img_data['file_path']
+
+            # Security: Validate file path is within allowed directory
+            media_root = getattr(settings, 'MEDIA_ROOT', '/tmp/media')
+            abs_path = os.path.abspath(file_path)
+            abs_media = os.path.abspath(media_root)
+
+            if not abs_path.startswith(abs_media):
+                raise ValueError(f"Invalid file path: must be within media directory")
+
+            if not os.path.exists(file_path):
+                raise ValueError(f"File not found: {file_path}")
+
+            # Security: Validate file size (max 20MB per image)
+            file_size = os.path.getsize(file_path)
+            max_size = 20 * 1024 * 1024  # 20MB
+            if file_size > max_size:
+                raise ValueError(f"File too large: {file_size} bytes (max {max_size})")
+
+            # Security: Validate actual file type using magic bytes
+            actual_type = imghdr.what(file_path)
+            allowed_types = {'jpeg', 'png', 'webp'}
+            if actual_type not in allowed_types:
+                raise ValueError(f"Invalid image type: {actual_type}")
+
+            # Determine MIME type from validated type
+            mime_types = {
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'webp': 'image/webp'
+            }
+            mime_type = mime_types.get(actual_type, 'image/jpeg')
+
+            # Use carousel_order for ordering
+            # Cover image (cover_index) will be set as order 0
+            order = img_data.get('order', idx)
+
+            PostMedia.objects.create(
+                post=post,
+                media_type='image',
+                file_path=abs_path,
+                file_size=file_size,
+                file_mime_type=mime_type,
+                carousel_order=order,
+                is_slideshow_source=False
+            )
+
+        # Schedule if needed
+        if status == 'scheduled':
+            self._schedule_post(post)
+
+        logger.info(f"Created photo post {post.id} with {len(images)} images for user {user.id}")
+        return post

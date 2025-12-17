@@ -13,6 +13,20 @@ class TikTokConfig:
     CLIENT_SECRET = config('TIKTOK_CLIENT_SECRET', default='')
     REDIRECT_URI = config('TIKTOK_REDIRECT_URI', default='http://localhost:8000/api/v1/tiktok/oauth/callback')
 
+    # API Mode: 'sandbox' uses Creator Inbox API (no review needed)
+    #           'production' uses Direct Post API (requires app review)
+    API_MODE = config('TIKTOK_API_MODE', default='sandbox')
+
+    @classmethod
+    def use_inbox_api(cls) -> bool:
+        """
+        Check if Creator Inbox API should be used (sandbox mode)
+
+        - Sandbox: Uses post/publish/inbox/video/init/ (no app review required)
+        - Production: Uses post/publish/video/init/ (requires video.publish scope + review)
+        """
+        return cls.API_MODE.lower() == 'sandbox'
+
     # API endpoints
     OAUTH_AUTHORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/'
     OAUTH_TOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/'
@@ -24,8 +38,16 @@ class TikTokConfig:
         'user.info.profile',     # Profile info (web_link, bio, is_verified)
         'user.info.stats',       # Stats (likes, followers, following, video count)
         'video.upload',          # Video upload permission (as draft)
+        'video.publish',         # Direct video posting (required for direct post)
         'video.list',            # List user videos
     ]
+
+    # TikTok Privacy Levels (API compatibility mapping)
+    PRIVACY_LEVELS = {
+        'public': 'PUBLIC_TO_EVERYONE',
+        'friends': 'MUTUAL_FOLLOW_FRIENDS',
+        'private': 'SELF_ONLY',
+    }
 
     # Rate limiting (based on TikTok API research)
     RATE_LIMIT_PER_MINUTE = 6  # Per user access token
@@ -60,9 +82,18 @@ class TikTokConfig:
     @classmethod
     def get_scope_string(cls) -> str:
         """Get comma-separated scope string for OAuth"""
+        # Allow override via environment variable for testing
+        override_scopes = config('TIKTOK_SCOPES', default='')
+        if override_scopes:
+            return override_scopes
         return ','.join(cls.SCOPES)
 
     @classmethod
     def is_configured(cls) -> bool:
         """Check if TikTok API credentials are configured"""
         return bool(cls.CLIENT_KEY and cls.CLIENT_SECRET)
+
+    @classmethod
+    def get_api_privacy_level(cls, privacy: str) -> str:
+        """Map internal privacy to TikTok API privacy level"""
+        return cls.PRIVACY_LEVELS.get(privacy, 'PUBLIC_TO_EVERYONE')

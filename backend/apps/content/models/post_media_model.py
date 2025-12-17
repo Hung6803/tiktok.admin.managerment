@@ -22,7 +22,9 @@ class PostMedia(BaseModel):
         'content.ScheduledPost',
         on_delete=models.CASCADE,
         related_name='media',
-        help_text="Post this media belongs to"
+        null=True,
+        blank=True,
+        help_text="Post this media belongs to (optional for standalone uploads)"
     )
     media_type = models.CharField(
         max_length=20,

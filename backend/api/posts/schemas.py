@@ -5,6 +5,7 @@ from ninja import Schema, Field
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
+from uuid import UUID
 from pydantic import field_validator
 from django.utils import timezone
 
@@ -20,10 +21,10 @@ class PostStatus(str, Enum):
 
 
 class PostPrivacy(str, Enum):
-    """Post privacy level enumeration"""
-    public = "public"
-    friends = "friends"
-    private = "private"
+    """Post privacy level enumeration (TikTok API values)"""
+    public = "public_to_everyone"
+    friends = "mutual_follow_friends"
+    private = "self_only"
 
 
 class MediaIn(Schema):
@@ -53,7 +54,8 @@ class PostCreateIn(Schema):
     allow_duet: bool = True
     allow_stitch: bool = True
     hashtags: List[str] = []
-    media: Optional[List[MediaIn]] = []
+    media: Optional[List[MediaIn]] = []  # For creating new media
+    media_ids: Optional[List[str]] = []  # For linking existing media from upload
     is_draft: bool = False
 
     @field_validator('hashtags')
@@ -84,18 +86,27 @@ class PostUpdateIn(Schema):
     hashtags: Optional[List[str]] = None
 
 
+class PostType(str, Enum):
+    """Post type enumeration"""
+    video = "video"
+    slideshow = "slideshow"
+    photo = "photo"
+
+
 class PostOut(Schema):
     """Post output schema"""
-    id: str
+    id: UUID
     title: str
     description: str
-    status: PostStatus
+    status: str  # Use string to handle all status values
+    post_type: str  # video, slideshow, or photo
     scheduled_time: Optional[datetime]
     published_at: Optional[datetime]
-    privacy_level: PostPrivacy
+    privacy_level: str  # Use string to handle legacy values
     account_count: int
     media_count: int
     error_message: Optional[str]
+    thumbnail_url: Optional[str] = None  # First media thumbnail for preview
     created_at: datetime
     updated_at: datetime
 
@@ -214,3 +225,59 @@ class SlideshowStatusOut(Schema):
     error_message: Optional[str] = None
     image_count: int = 0
     estimated_duration_sec: Optional[float] = None
+
+
+# Photo post schemas
+class PhotoImageIn(Schema):
+    """Image input for photo post creation"""
+    file_path: str
+    order: int = 0
+
+
+class PhotoPostCreateIn(Schema):
+    """Create photo post input schema (supports 1-35 images)"""
+    title: str = Field(..., max_length=150)
+    description: str = Field(..., max_length=2200)
+    account_ids: List[str]
+    images: List[PhotoImageIn]
+    cover_index: int = 0  # Index of cover image (0-based)
+    scheduled_time: Optional[datetime] = None
+    privacy_level: PostPrivacy = PostPrivacy.public
+    disable_comment: bool = False
+    hashtags: List[str] = []
+    is_draft: bool = False
+
+    @field_validator('images')
+    @classmethod
+    def validate_images(cls, v):
+        """Validate image count (1-35 images for TikTok Photo API)"""
+        if len(v) < 1:
+            raise ValueError('At least 1 image is required')
+        if len(v) > 35:
+            raise ValueError('Maximum 35 images allowed')
+        return v
+
+    @field_validator('hashtags')
+    @classmethod
+    def validate_hashtags(cls, v):
+        """Validate hashtags"""
+        cleaned = [tag.lstrip('#') for tag in v]
+        if len(cleaned) > 30:
+            raise ValueError('Maximum 30 hashtags allowed')
+        return cleaned
+
+    @field_validator('scheduled_time')
+    @classmethod
+    def validate_scheduled_time(cls, v):
+        """Validate scheduled time is in future"""
+        if v and v <= timezone.now():
+            raise ValueError('Scheduled time must be in the future')
+        return v
+
+    @field_validator('cover_index')
+    @classmethod
+    def validate_cover_index(cls, v, info):
+        """Validate cover index is within bounds"""
+        if v < 0:
+            raise ValueError('Cover index must be non-negative')
+        return v

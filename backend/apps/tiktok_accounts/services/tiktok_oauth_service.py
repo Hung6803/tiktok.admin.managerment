@@ -45,11 +45,14 @@ class TikTokOAuthService:
             'response_type': 'code',
             'redirect_uri': self.config.REDIRECT_URI,
             'state': state,
+            'disable_auto_auth': '1',  # Always show authorization page for multiple accounts
         }
 
         auth_url = f"{self.config.OAUTH_AUTHORIZE_URL}?{urlencode(params)}"
 
         logger.info(f"Generated authorization URL with state: {state[:8]}...")
+        logger.info(f"OAuth scopes requested: {self.config.get_scope_string()}")
+        logger.info(f"Full authorization URL: {auth_url}")
 
         return {
             'url': auth_url,
@@ -84,16 +87,23 @@ class TikTokOAuthService:
         }
 
         try:
+            # TikTok token endpoint requires application/x-www-form-urlencoded
             response = self.client.post(
                 self.config.OAUTH_TOKEN_URL,
-                json=data
+                data=data  # Use data= for form-urlencoded, not json=
             )
 
+            # Log response for debugging (redact sensitive data)
+            logger.debug(f"Token response keys: {response.keys() if response else 'None'}")
+
             # Extract token data from response
-            token_data = response.get('data', {})
+            # TikTok v2 API wraps token in 'data' field, but may also return at root level
+            token_data = response.get('data', {}) or response
 
             if 'access_token' not in token_data:
-                logger.error("Token exchange failed: No access_token in response")
+                # Log error details for debugging
+                error_info = response.get('error', {}) if response else {}
+                logger.error(f"Token exchange failed: No access_token. Error: {error_info}")
                 raise ValueError("No access_token in response")
 
             expires_in = token_data.get('expires_in', 86400)  # Default 24 hours
@@ -137,15 +147,18 @@ class TikTokOAuthService:
         }
 
         try:
+            # TikTok token endpoint requires application/x-www-form-urlencoded
             response = self.client.post(
                 self.config.OAUTH_TOKEN_URL,
-                json=data
+                data=data  # Use data= for form-urlencoded, not json=
             )
 
-            token_data = response.get('data', {})
+            # TikTok v2 API wraps token in 'data' field
+            token_data = response.get('data', {}) or response
 
             if 'access_token' not in token_data:
-                logger.error("Token refresh failed: No access_token in response")
+                error_info = response.get('error', {}) if response else {}
+                logger.error(f"Token refresh failed: No access_token. Error: {error_info}")
                 raise ValueError("No access_token in response")
 
             expires_in = token_data.get('expires_in', 86400)

@@ -27,9 +27,12 @@ class TikTokAccountService:
         self.config = TikTokConfig()
         self.client = TikTokAPIClient(access_token)
 
-    def get_user_info(self) -> Dict[str, Any]:
+    def get_user_info(self, include_profile: bool = False) -> Dict[str, Any]:
         """
         Fetch TikTok user information
+
+        Args:
+            include_profile: If True, request profile fields (requires user.info.profile scope)
 
         Returns:
             Dictionary with user data:
@@ -37,7 +40,7 @@ class TikTokAccountService:
             - union_id: Cross-app user ID
             - avatar_url: Profile picture URL
             - display_name: User display name
-            - username: TikTok username
+            - username: TikTok username (only if include_profile=True)
 
         Raises:
             requests.exceptions.RequestException: On API error
@@ -45,15 +48,27 @@ class TikTokAccountService:
         logger.info("Fetching user info from TikTok API")
 
         url = f"{self.config.API_BASE_URL}user/info/"
+
+        # Base fields from user.info.basic scope
+        fields = ['open_id', 'union_id', 'avatar_url', 'display_name']
+
+        # Additional fields from user.info.profile scope
+        if include_profile:
+            fields.extend(['username', 'bio_description', 'is_verified'])
+
         params = {
-            'fields': 'open_id,union_id,avatar_url,display_name,username'
+            'fields': ','.join(fields)
         }
 
         try:
             response = self.client.get(url, params=params)
             user_data = response.get('data', {}).get('user', {})
 
-            logger.info(f"Successfully fetched user info for: {user_data.get('username', 'unknown')}")
+            # Use display_name as fallback for username if not available
+            if 'username' not in user_data:
+                user_data['username'] = user_data.get('display_name', '')
+
+            logger.info(f"Successfully fetched user info for: {user_data.get('display_name', 'unknown')}")
 
             return user_data
 

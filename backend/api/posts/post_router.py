@@ -10,12 +10,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 import logging
 
+from django.conf import settings
 from apps.content.models import ScheduledPost, PostMedia
 from api.auth.middleware import JWTAuth
+import os
 from .schemas import (
     PostCreateIn, PostUpdateIn, PostOut,
     PostDetailOut, PostListOut, PublishResultOut, BulkScheduleIn,
-    SlideshowCreateIn, SlideshowStatusOut, SlideshowConversionStatus
+    SlideshowCreateIn, SlideshowStatusOut, SlideshowConversionStatus,
+    PhotoPostCreateIn
 )
 from .post_service import PostService
 
@@ -24,15 +27,84 @@ router = Router()
 auth = JWTAuth()
 
 
+def get_media_url(file_path: str) -> str:
+    """Convert absolute file path to relative media URL"""
+    if not file_path:
+        return None
+
+    # Get MEDIA_ROOT as string
+    media_root = str(settings.MEDIA_ROOT)
+
+    # Normalize paths for comparison (handles Windows backslashes)
+    normalized_path = os.path.normpath(file_path)
+    normalized_root = os.path.normpath(media_root)
+
+    # If path starts with MEDIA_ROOT, make it relative
+    if normalized_path.startswith(normalized_root):
+        relative_path = normalized_path[len(normalized_root):].lstrip(os.sep)
+        # Convert backslashes to forward slashes for URL
+        relative_path = relative_path.replace('\\', '/')
+        return f"/media/{relative_path}"
+
+    # If already a relative path starting with /media, return as-is
+    if file_path.startswith('/media/'):
+        return file_path
+
+    # Otherwise, assume it's a relative path from media root
+    return f"/media/{file_path.replace(chr(92), '/')}"
+
+
 @router.post("/", response=PostOut, auth=auth)
 def create_post(request, data: PostCreateIn):
     """Create new post"""
+    logger.info(f"Creating post with data: {data.dict()}")
     service = PostService()
     post = service.create_post(request.auth, data.dict())
 
     # Add computed fields
     post.account_count = post.accounts.count()
     post.media_count = post.media.count()
+
+    # Add thumbnail_url
+    first_media = post.media.order_by('carousel_order').first()
+    if first_media:
+        if first_media.thumbnail_path:
+            post.thumbnail_url = get_media_url(first_media.thumbnail_path)
+        elif first_media.media_type == 'image':
+            post.thumbnail_url = get_media_url(first_media.file_path)
+        else:
+            post.thumbnail_url = None
+    else:
+        post.thumbnail_url = None
+
+    return post
+
+
+# Photo post endpoint (must be before /{post_id} routes to avoid path conflicts)
+@router.post("/photo", response=PostOut, auth=auth)
+def create_photo_post(request, data: PhotoPostCreateIn):
+    """
+    Create photo post from 1-35 images
+
+    Images must be uploaded first via /media/upload endpoint.
+    Photos are published directly to TikTok using the Photo Post API.
+    """
+    logger.info(f"Creating photo post with {len(data.images)} images")
+    service = PostService()
+    post = service.create_photo_post(request.auth, data.dict())
+
+    # Add computed fields
+    post.account_count = post.accounts.count()
+    post.media_count = post.media.count()
+
+    # Add thumbnail_url (use cover image for photo posts)
+    cover_media = post.media.filter(carousel_order=data.cover_index).first()
+    if not cover_media:
+        cover_media = post.media.order_by('carousel_order').first()
+    if cover_media:
+        post.thumbnail_url = get_media_url(cover_media.file_path)
+    else:
+        post.thumbnail_url = None
 
     return post
 
@@ -64,7 +136,9 @@ def list_posts(
     if from_date:
         queryset = queryset.filter(scheduled_time__gte=from_date)
     if to_date:
-        queryset = queryset.filter(scheduled_time__lte=to_date)
+        # Add 1 day to include entire day (to_date is interpreted as midnight)
+        to_date_end = to_date + timedelta(days=1)
+        queryset = queryset.filter(scheduled_time__lt=to_date_end)
 
     # Paginate
     paginator = Paginator(queryset, limit)
@@ -72,6 +146,20 @@ def list_posts(
 
     # Computed fields already annotated
     items = list(page_obj)
+
+    # Add thumbnail_url for each post
+    for post in items:
+        first_media = post.media.order_by('carousel_order').first()
+        if first_media:
+            # Use thumbnail_path for videos/slideshow, file_path for images
+            if first_media.thumbnail_path:
+                post.thumbnail_url = get_media_url(first_media.thumbnail_path)
+            elif first_media.media_type == 'image':
+                post.thumbnail_url = get_media_url(first_media.file_path)
+            else:
+                post.thumbnail_url = None
+        else:
+            post.thumbnail_url = None
 
     return PostListOut(
         items=items,

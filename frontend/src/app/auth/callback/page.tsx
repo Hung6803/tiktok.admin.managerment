@@ -2,73 +2,51 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { apiClient } from '@/lib/api-client'
 
 /**
  * OAuth callback handler component
- * Processes TikTok OAuth callback and redirects to accounts page
+ * Processes TikTok OAuth callback redirect from backend
  */
 function CallbackHandler() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [error, setError] = useState('')
+  const [accountName, setAccountName] = useState('')
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const code = searchParams.get('code')
-      const receivedState = searchParams.get('state')
-      const errorParam = searchParams.get('error')
+    // Backend redirects here with query params: success, error, account
+    const success = searchParams.get('success')
+    const errorParam = searchParams.get('error')
+    const account = searchParams.get('account')
 
-      if (errorParam) {
-        setStatus('error')
-        setError(`OAuth error: ${errorParam}`)
-        setTimeout(() => router.push('/accounts'), 3000)
-        return
-      }
-
-      if (!code) {
-        setStatus('error')
-        setError('No authorization code received')
-        setTimeout(() => router.push('/accounts'), 3000)
-        return
-      }
-
-      // SECURITY: Validate OAuth state parameter to prevent CSRF attacks
-      const savedState = sessionStorage.getItem('oauth_state')
-      if (!receivedState || receivedState !== savedState) {
-        setStatus('error')
-        setError('Invalid OAuth state - possible CSRF attack')
-        sessionStorage.removeItem('oauth_state')
-        setTimeout(() => router.push('/accounts'), 3000)
-        return
-      }
-
-      // Clear state after successful validation
-      sessionStorage.removeItem('oauth_state')
-
-      try {
-        // Send authorization code to backend
-        await apiClient.get('/tiktok/callback', {
-          params: { code, state: receivedState }
-        })
-
-        setStatus('success')
-        setTimeout(() => router.push('/accounts'), 1500)
-      } catch (err) {
-        setStatus('error')
-        if (err instanceof Error) {
-          const axiosError = err as any
-          const errorMessage = axiosError.response?.data?.message || 'Failed to connect TikTok account'
-          setError(errorMessage)
-        } else {
-          setError('Failed to connect TikTok account')
-        }
-        setTimeout(() => router.push('/accounts'), 3000)
-      }
+    if (success === 'true') {
+      setStatus('success')
+      setAccountName(account || '')
+      setTimeout(() => router.push('/accounts'), 1500)
+      return
     }
 
-    handleCallback()
+    if (errorParam) {
+      setStatus('error')
+      // Map error codes to user-friendly messages
+      const errorMessages: Record<string, string> = {
+        'session_expired': 'Session expired. Please try again.',
+        'missing_params': 'Invalid callback. Missing parameters.',
+        'user_not_found': 'User not found. Please login again.',
+        'csrf_failed': 'Security check failed. Please try again.',
+        'connection_failed': 'Failed to connect TikTok account.',
+        'access_denied': 'TikTok access was denied.',
+      }
+      setError(errorMessages[errorParam] || `Error: ${errorParam}`)
+      setTimeout(() => router.push('/accounts'), 3000)
+      return
+    }
+
+    // No success or error - still processing or invalid state
+    setStatus('error')
+    setError('Invalid callback state')
+    setTimeout(() => router.push('/accounts'), 3000)
   }, [searchParams, router])
 
   return (
@@ -86,7 +64,12 @@ function CallbackHandler() {
           <>
             <div className="text-green-600 text-5xl mb-4">✓</div>
             <h2 className="text-xl font-semibold mb-2">Success!</h2>
-            <p className="text-gray-600">Your TikTok account has been connected.</p>
+            <p className="text-gray-600">
+              {accountName
+                ? `TikTok account @${accountName} has been connected.`
+                : 'Your TikTok account has been connected.'
+              }
+            </p>
             <p className="text-sm text-gray-500 mt-2">Redirecting to accounts...</p>
           </>
         )}

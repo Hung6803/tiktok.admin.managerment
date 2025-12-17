@@ -109,6 +109,11 @@ class TikTokAccount(BaseModel):
     def __str__(self):
         return f"{self.username} (@{self.tiktok_user_id})"
 
+    @property
+    def is_active(self) -> bool:
+        """Check if account is active (for frontend compatibility)"""
+        return self.status == 'active'
+
     def is_token_expired(self):
         """Check if access token has expired"""
         from django.utils import timezone

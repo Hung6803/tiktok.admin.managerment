@@ -34,11 +34,12 @@ export interface TikTokAccount {
 }
 
 /**
- * Post status enum
+ * Post status enum (matches backend)
  */
 export enum PostStatus {
   DRAFT = 'draft',
   SCHEDULED = 'scheduled',
+  PENDING = 'pending',
   PUBLISHING = 'publishing',
   PUBLISHED = 'published',
   FAILED = 'failed',
@@ -70,26 +71,55 @@ export interface Media {
 }
 
 /**
- * Post type
+ * Post type enum
+ */
+export enum PostType {
+  VIDEO = 'video',
+  SLIDESHOW = 'slideshow',
+  PHOTO = 'photo',
+}
+
+/**
+ * Post type (matches backend PostOut schema)
  */
 export interface Post {
   id: string
-  user_id: string
-  account_id: string
-  account?: TikTokAccount
-  media_id: string
-  media?: Media
-  caption: string
-  visibility: PostVisibility
-  scheduled_time: string
+  title: string
+  description: string
   status: PostStatus
-  tiktok_video_id: string | null
-  tiktok_share_url: string | null
-  publish_attempts: number
-  last_error: string | null
+  post_type: PostType
+  scheduled_time: string | null
   published_at: string | null
+  privacy_level: PostVisibility
+  account_count: number
+  media_count: number
+  error_message: string | null
+  thumbnail_url: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * Detailed post type (matches backend PostDetailOut schema)
+ */
+export interface PostDetail extends Post {
+  accounts: Array<{ id: string; username: string; display_name: string }>
+  media: Array<{
+    id: string
+    file_path: string
+    media_type: string
+    thumbnail_path?: string
+  }>
+  hashtags: string[]
+  allow_comments: boolean
+  allow_duet: boolean
+  allow_stitch: boolean
+  publish_history: Array<{
+    account__username: string
+    status: string
+    published_at: string | null
+    error_message: string | null
+  }>
 }
 
 /**

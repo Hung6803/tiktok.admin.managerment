@@ -177,6 +177,12 @@ TIKTOK_CLIENT_KEY = config('TIKTOK_CLIENT_KEY', default='')
 TIKTOK_CLIENT_SECRET = config('TIKTOK_CLIENT_SECRET', default='')
 TIKTOK_REDIRECT_URI = config('TIKTOK_REDIRECT_URI', default='http://localhost:8000/api/v1/tiktok/callback')
 
+# Backend Public URL (for TikTok Photo API - images must be accessible from this URL)
+BACKEND_PUBLIC_URL = config('BACKEND_PUBLIC_URL', default='http://localhost:8000')
+
+# Frontend URL (for OAuth callback redirects)
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
 # JWT Configuration
 JWT_ACCESS_TOKEN_LIFETIME = timedelta(hours=24)
 JWT_REFRESH_TOKEN_LIFETIME = timedelta(days=30)

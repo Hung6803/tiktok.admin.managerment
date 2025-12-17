@@ -22,6 +22,7 @@ class TikTokAccountOut(Schema):
     display_name: str
     avatar_url: Optional[str] = None
     status: AccountStatus
+    is_active: bool  # Computed property from model
     follower_count: int
     following_count: int
     video_count: int

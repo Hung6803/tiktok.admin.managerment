@@ -9,46 +9,33 @@ export function useAccounts() {
   return useQuery({
     queryKey: ['tiktok-accounts'],
     queryFn: async () => {
-      const response = await apiClient.get<{ accounts: TikTokAccount[] }>('/tiktok/accounts')
-      return response.data.accounts
+      const response = await apiClient.get<{ items: TikTokAccount[], total: number, has_more: boolean }>('/accounts/')
+      return response.data.items ?? []
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   })
 }
 
 /**
- * Get TikTok OAuth URL with CSRF protection
- * Generates random state parameter and saves to sessionStorage
+ * Get TikTok OAuth authorization URL
+ * Opens a new window to the backend authorize endpoint with JWT token
+ * Backend handles state generation and redirects to TikTok
  */
 export function useGetAuthUrl() {
   return useMutation({
     mutationFn: async () => {
-      // Generate random state for OAuth CSRF protection
-      const state = generateRandomState()
-      sessionStorage.setItem('oauth_state', state)
+      // Get the access token from localStorage
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
 
-      const response = await apiClient.get<{ auth_url: string }>('/tiktok/auth/url', {
-        params: { state }
-      })
-      return response.data.auth_url
+      // Open authorize URL in same window - token passed via query param
+      // Backend will validate token and redirect to TikTok
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+      return `${baseUrl}/tiktok/oauth/authorize?token=${encodeURIComponent(token)}`
     },
   })
-}
-
-/**
- * Generate cryptographically secure random state for OAuth
- */
-function generateRandomState(): string {
-  const array = new Uint8Array(32)
-  if (typeof window !== 'undefined' && window.crypto) {
-    window.crypto.getRandomValues(array)
-  } else {
-    // Fallback for SSR (should not be used for OAuth)
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256)
-    }
-  }
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
 /**
@@ -59,7 +46,7 @@ export function useDeleteAccount() {
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      await apiClient.delete(`/tiktok/accounts/${accountId}`)
+      await apiClient.delete(`/accounts/${accountId}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tiktok-accounts'] })
@@ -75,7 +62,7 @@ export function useSyncAccount() {
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      const response = await apiClient.post(`/tiktok/accounts/${accountId}/sync`)
+      const response = await apiClient.post(`/accounts/${accountId}/sync`)
       return response.data
     },
     onSuccess: () => {

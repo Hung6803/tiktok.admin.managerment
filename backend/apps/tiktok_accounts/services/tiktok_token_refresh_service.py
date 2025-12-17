@@ -3,6 +3,7 @@ TikTok Token Refresh Service
 Manages automatic token refresh for TikTok accounts
 """
 from django.utils import timezone
+from django.db import transaction
 from datetime import timedelta
 from typing import List, Dict, Any
 import logging
@@ -83,11 +84,13 @@ class TikTokTokenRefreshService:
         Returns:
             List of TikTokAccount instances needing refresh
         """
+        # Note: select_for_update is handled per-account in refresh_account_token
+        # to avoid holding locks for the entire batch operation
         return list(TikTokAccount.objects.filter(
             token_expires_at__lte=threshold,
             status='active',
             is_deleted=False
-        ).select_for_update(skip_locked=True))  # Lock rows to prevent concurrent refresh
+        ))
 
     def refresh_account_token(self, account: TikTokAccount) -> bool:
         """
@@ -105,30 +108,41 @@ class TikTokTokenRefreshService:
         """
         logger.info(f"Refreshing token for account {account.username}")
 
-        # Get decrypted refresh token (auto-decrypted by field)
-        refresh_token = account.refresh_token
-        if not refresh_token:
-            raise ValueError("No refresh token available")
+        # Use transaction with select_for_update to prevent concurrent refresh
+        with transaction.atomic():
+            # Re-fetch account with lock to prevent race conditions
+            try:
+                locked_account = TikTokAccount.objects.select_for_update(
+                    skip_locked=True
+                ).get(id=account.id, is_deleted=False)
+            except TikTokAccount.DoesNotExist:
+                logger.warning(f"Account {account.id} not found or already being refreshed")
+                return False
 
-        # Call OAuth service to refresh
-        token_data = self.oauth_service.refresh_access_token(refresh_token)
+            # Get decrypted refresh token (auto-decrypted by field)
+            refresh_token = locked_account.refresh_token
+            if not refresh_token:
+                raise ValueError("No refresh token available")
 
-        # Update account with new tokens (auto-encrypted on save)
-        account.access_token = token_data['access_token']
-        account.refresh_token = token_data.get('refresh_token', refresh_token)
-        account.token_expires_at = token_data['token_expires_at']
-        account.status = 'active'
-        account.last_refreshed = timezone.now()
-        account.save(update_fields=[
-            'access_token', 'refresh_token', 'token_expires_at',
-            'status', 'last_refreshed'
-        ])
+            # Call OAuth service to refresh
+            token_data = self.oauth_service.refresh_access_token(refresh_token)
 
-        logger.info(
-            f"Token refreshed successfully for {account.username}, "
-            f"expires at {account.token_expires_at}"
-        )
-        return True
+            # Update account with new tokens (auto-encrypted on save)
+            locked_account.access_token = token_data['access_token']
+            locked_account.refresh_token = token_data.get('refresh_token', refresh_token)
+            locked_account.token_expires_at = token_data['token_expires_at']
+            locked_account.status = 'active'
+            locked_account.last_refreshed = timezone.now()
+            locked_account.save(update_fields=[
+                'access_token', 'refresh_token', 'token_expires_at',
+                'status', 'last_refreshed'
+            ])
+
+            logger.info(
+                f"Token refreshed successfully for {locked_account.username}, "
+                f"expires at {locked_account.token_expires_at}"
+            )
+            return True
 
     def _handle_refresh_failure(self, account: TikTokAccount, error: str) -> None:
         """

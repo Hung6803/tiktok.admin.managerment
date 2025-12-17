@@ -142,7 +142,8 @@ class TikTokAPIClient:
 
             headers = self._get_headers()
             # Remove Content-Type for multipart/form-data (auto-set by requests)
-            if files:
+            # Also remove for form-urlencoded data (let requests set it)
+            if files or (data and not json):
                 headers.pop('Content-Type', None)
 
             timeout = timeout or self.config.REQUEST_TIMEOUT

@@ -184,12 +184,11 @@ def finalize_upload(request, upload_id: str, post_id: Optional[str] = None):
         media = PostMedia.objects.create(
             post_id=post_id,
             file_path=str(final_path),
-            file_name=file_name,
             file_size=file_size,
             file_mime_type=content_type,
             media_type=media_type,
             duration=metadata.get('duration'),
-            thumbnail_url=thumbnail_url
+            thumbnail_path=thumbnail_url
         )
 
         logger.info(f"Finalized upload {upload_id} -> Media {media.id}")
@@ -280,12 +279,11 @@ def simple_upload(
         media = PostMedia.objects.create(
             post_id=post_id,
             file_path=str(temp_path),
-            file_name=file.name,
             file_size=file.size,
             file_mime_type=file.content_type,
             media_type=media_type,
             duration=metadata.get('duration'),
-            thumbnail_url=thumbnail_url
+            thumbnail_path=thumbnail_url  # Store thumbnail path
         )
 
         logger.info(f"Simple upload completed: {file.name} -> Media {media.id}")
@@ -372,11 +370,10 @@ def upload_multiple_images(
             media = PostMedia.objects.create(
                 post_id=post_id,
                 file_path=str(image_path),
-                file_name=image.name,
                 file_size=image.size,
                 file_mime_type=image.content_type,
                 media_type='image',
-                thumbnail_url=thumbnail_url
+                thumbnail_path=thumbnail_url
             )
 
             created_media.append(media)
