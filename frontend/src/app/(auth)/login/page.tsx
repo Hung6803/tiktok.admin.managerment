@@ -44,7 +44,7 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-3xl font-bold text-center">TikTok Manager</CardTitle>
+        <CardTitle className="text-3xl font-bold text-center">Hagency Media Manager</CardTitle>
         <CardDescription className="text-center">
           Sign in to manage your TikTok accounts
         </CardDescription>

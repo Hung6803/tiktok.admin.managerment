@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import Image from 'next/image'
 
 /**
  * Dashboard header component
@@ -20,7 +21,8 @@ export function Header() {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-bold">TikTok Manager</h1>
+          <Image src="/logo.png" alt="Hagency" width={32} height={32} className="rounded-lg" />
+          <h1 className="text-xl font-bold">Hagency Media</h1>
         </div>
 
         <div className="flex items-center gap-2">
