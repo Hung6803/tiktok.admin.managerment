@@ -29,7 +29,17 @@ export default function LoginPage() {
       await login(email, password)
     } catch (err) {
       if (err instanceof AxiosError) {
-        const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.'
+        const data = err.response?.data
+        let errorMessage = 'Login failed. Please check your credentials.'
+
+        if (typeof data?.message === 'string') {
+          errorMessage = data.message
+        } else if (typeof data?.detail === 'string') {
+          errorMessage = data.detail
+        } else if (Array.isArray(data?.detail)) {
+          errorMessage = data.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join(', ')
+        }
+
         setError(errorMessage)
       } else if (err instanceof Error) {
         setError(err.message)
@@ -44,7 +54,7 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-3xl font-bold text-center">Hagency Media Manager</CardTitle>
+        <CardTitle className="text-3xl font-bold text-center">Operis Media Manager</CardTitle>
         <CardDescription className="text-center">
           Sign in to manage your TikTok accounts
         </CardDescription>

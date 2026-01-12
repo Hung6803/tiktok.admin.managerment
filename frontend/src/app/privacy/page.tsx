@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react'
  */
 export default function PrivacyPolicyPage() {
   const lastUpdated = 'January 7, 2026'
-  const appName = 'Hagency Media Manager'
+  const appName = 'Operis Media Manager'
   const contactEmail = 'support@operis.vn'
   const website = 'https://media.operis.vn'
 

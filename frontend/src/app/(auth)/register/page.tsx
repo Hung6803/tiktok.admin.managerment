@@ -43,7 +43,17 @@ export default function RegisterPage() {
       await register(email, username, password)
     } catch (err) {
       if (err instanceof AxiosError) {
-        const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.'
+        const data = err.response?.data
+        let errorMessage = 'Registration failed. Please try again.'
+
+        if (typeof data?.message === 'string') {
+          errorMessage = data.message
+        } else if (typeof data?.detail === 'string') {
+          errorMessage = data.detail
+        } else if (Array.isArray(data?.detail)) {
+          errorMessage = data.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join(', ')
+        }
+
         setError(errorMessage)
       } else if (err instanceof Error) {
         setError(err.message)

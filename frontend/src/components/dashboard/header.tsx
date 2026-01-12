@@ -21,8 +21,8 @@ export function Header() {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <Image src="/logo.png" alt="Hagency" width={32} height={32} className="rounded-lg" />
-          <h1 className="text-xl font-bold">Hagency Media</h1>
+          <Image src="/logo.png" alt="Operis" width={32} height={32} className="rounded-lg" />
+          <h1 className="text-xl font-bold">Operis Media</h1>
         </div>
 
         <div className="flex items-center gap-2">

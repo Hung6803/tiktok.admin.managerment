@@ -37,6 +37,19 @@ interface UploadedImage {
 }
 
 /**
+ * Format date to local datetime string for datetime-local input
+ * toISOString() returns UTC, but datetime-local expects local time
+ */
+function formatLocalDateTime(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+/**
  * Post creation form component
  * Supports both video and photo (1-35 images) posts
  */
@@ -64,8 +77,8 @@ export function PostForm({ open, onClose, selectedDate }: PostFormProps) {
     defaultValues: {
       visibility: PostVisibility.PUBLIC,
       scheduled_time: selectedDate
-        ? new Date(selectedDate.getTime() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+        ? formatLocalDateTime(new Date(selectedDate.getTime() + 2 * 60 * 60 * 1000))
+        : formatLocalDateTime(new Date(Date.now() + 5 * 60 * 1000)), // Default: 5 minutes from now
     },
   })
 
@@ -241,7 +254,22 @@ export function PostForm({ open, onClose, selectedDate }: PostFormProps) {
 
   const handleError = (err: unknown) => {
     if (err instanceof AxiosError) {
-      const errorMessage = err.response?.data?.message || err.response?.data?.detail || 'Failed to create post'
+      const data = err.response?.data
+      let errorMessage = 'Failed to create post'
+
+      if (typeof data?.message === 'string') {
+        errorMessage = data.message
+      } else if (typeof data?.detail === 'string') {
+        errorMessage = data.detail
+      } else if (Array.isArray(data?.detail)) {
+        // Handle Pydantic validation errors
+        errorMessage = data.detail
+          .map((e: { msg?: string; loc?: string[] }) => e.msg || JSON.stringify(e))
+          .join(', ')
+      } else if (data?.detail && typeof data.detail === 'object') {
+        errorMessage = data.detail.msg || JSON.stringify(data.detail)
+      }
+
       setError(errorMessage)
     } else if (err instanceof Error) {
       setError(err.message)

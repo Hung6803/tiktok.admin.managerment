@@ -90,8 +90,8 @@ npm run dev
 4. **Start Celery Workers**
 ```bash
 cd backend
-celery -A core worker -l info
-celery -A core beat -l info
+celery -A config.celery worker -l info
+celery -A config.celery beat -l info
 ```
 
 ### Docker Setup

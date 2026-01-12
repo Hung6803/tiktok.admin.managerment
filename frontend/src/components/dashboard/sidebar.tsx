@@ -25,8 +25,8 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 bg-gray-900 text-white min-h-screen">
       <div className="p-6 flex items-center gap-3">
-        <Image src="/logo.png" alt="Hagency" width={40} height={40} className="rounded-lg" />
-        <h1 className="text-xl font-bold">Hagency Media</h1>
+        <Image src="/logo.png" alt="Operis" width={40} height={40} className="rounded-lg" />
+        <h1 className="text-xl font-bold">Operis Media</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">

@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react'
  */
 export default function TermsOfServicePage() {
   const lastUpdated = 'January 7, 2026'
-  const appName = 'Hagency Media Manager'
+  const appName = 'Operis Media Manager'
   const contactEmail = 'support@operis.vn'
   const website = 'https://media.operis.vn'
 
@@ -46,7 +46,7 @@ export default function TermsOfServicePage() {
                 1. Introduction
               </h2>
               <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                Welcome to {appName} ("we", "our", "the Service").
+                Welcome to {appName}.
               </p>
               <p className="text-gray-600 dark:text-gray-300 leading-relaxed mt-4">
                 {appName} is a third-party social media management tool that allows users to connect
